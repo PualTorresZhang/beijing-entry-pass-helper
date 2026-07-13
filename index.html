@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#23615a" />
+    <meta name="description" content="外地车辆进京证到期管理与续办记录" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="进京证助手" />
+    <meta property="og:description" content="外地车辆进京证到期管理与云端同步" />
+    <meta property="og:url" content="https://pualtorreszhang.github.io/beijing-entry-pass-helper/" />
+    <meta property="og:image" content="https://pualtorreszhang.github.io/beijing-entry-pass-helper/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="进京证助手" />
+    <meta name="twitter:description" content="外地车辆进京证到期管理与云端同步" />
+    <meta name="twitter:image" content="https://pualtorreszhang.github.io/beijing-entry-pass-helper/og.png" />
+    <title>进京证助手</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">外地车牌进京证</p>
+          <h1>进京证助手</h1>
+        </div>
+        <div class="top-actions">
+          <div class="account-actions" id="accountActions">
+            <span class="account-email">本机保存</span>
+          </div>
+          <button
+            class="ghost-button"
+            id="notificationButton"
+            type="button"
+            title="允许浏览器在页面打开时显示到期通知"
+          >开启通知</button>
+          <a
+            class="ghost-button link-button"
+            id="calendarButton"
+            href="#"
+            title="下载一次性日历文件"
+          >导出到日历</a>
+        </div>
+      </section>
+
+      <section class="reminder-strip is-checking" id="reminderStrip" aria-label="数据保存状态">
+        <div>
+          <strong id="reminderTitle">正在读取浏览器数据</strong>
+          <span id="reminderDescription">请稍候</span>
+        </div>
+        <code id="reminderSchedule">到期日打开页面提醒</code>
+      </section>
+
+      <section class="auth-gate" id="authGate">
+        <div>
+          <strong>车辆数据仅保存在当前浏览器</strong>
+          <span>不会上传到公开仓库；更换设备或清除浏览器数据后无法自动恢复。</span>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="概览">
+        <article class="metric">
+          <span class="metric-label">车辆总数</span>
+          <strong id="totalCars">0</strong>
+        </article>
+        <article class="metric">
+          <span class="metric-label">今日到期</span>
+          <strong id="expiringSoon">0</strong>
+        </article>
+        <article class="metric">
+          <span class="metric-label">已过期</span>
+          <strong id="expiredCars">0</strong>
+        </article>
+        <article class="metric">
+          <span class="metric-label">下次到期</span>
+          <strong id="nextPlate">--</strong>
+          <span class="metric-detail" id="nextDate"></span>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <form class="panel form-panel" id="passForm">
+          <div class="panel-heading">
+            <h2 id="formTitle">新增车辆</h2>
+            <button class="text-button" id="resetButton" type="button">重置</button>
+          </div>
+
+          <input id="recordId" type="hidden" />
+          <label>
+            车牌号
+            <input id="plate" required placeholder="冀A12345" maxlength="12" />
+          </label>
+          <label>
+            车主/使用人
+            <input id="owner" required placeholder="张三" />
+          </label>
+          <label>
+            手机号
+            <input id="phone" inputmode="tel" placeholder="选填" />
+          </label>
+          <div class="two-col">
+            <label>
+              办理日期
+              <input id="issueDate" required type="date" />
+            </label>
+            <label>
+              生效日期
+              <input id="effectiveDate" required type="date" />
+            </label>
+          </div>
+          <label>
+            到期日期（自动计算）
+            <input id="expireDate" required readonly type="date" />
+          </label>
+          <div class="two-col">
+            <label>
+              已办次数
+              <input id="usedCount" min="0" type="number" value="0" />
+            </label>
+            <label>
+              剩余次数
+              <input id="remainingCount" min="0" type="number" value="0" />
+            </label>
+          </div>
+          <label>
+            办理渠道
+            <select id="channel">
+              <option>北京交警 App</option>
+              <option>线下窗口</option>
+              <option>代办提醒</option>
+              <option>其他</option>
+            </select>
+          </label>
+          <label>
+            备注
+            <textarea id="notes" rows="4" placeholder="通行区域、办理人、材料状态等"></textarea>
+          </label>
+
+          <button class="primary-button full-width" type="submit">保存记录</button>
+        </form>
+
+        <section class="panel list-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>车辆列表</h2>
+              <p id="todayLabel"></p>
+            </div>
+            <div class="search-box">
+              <input id="searchInput" placeholder="搜索车牌/车主" />
+            </div>
+          </div>
+          <div class="tabs" role="group" aria-label="筛选车辆">
+            <button class="tab active" data-filter="all" type="button">全部</button>
+            <button class="tab" data-filter="active" type="button">有效</button>
+            <button class="tab" data-filter="soon" type="button">今日到期</button>
+            <button class="tab" data-filter="expired" type="button">过期</button>
+          </div>
+          <div class="cards" id="recordsList"></div>
+          <div class="empty-state" id="emptyState">
+            <div class="permit-visual" aria-hidden="true">
+              <span>京</span>
+              <strong>PASS</strong>
+            </div>
+            <h3 id="emptyTitle">还没有车辆记录</h3>
+            <p id="emptyDescription">添加一辆外地车，记录会保存在当前浏览器。</p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="recordTemplate">
+      <article class="record-card">
+        <div class="record-head">
+          <div class="record-main">
+            <div class="plate-badge"></div>
+            <div>
+              <h3></h3>
+              <p class="record-meta"></p>
+            </div>
+          </div>
+          <div class="record-status"></div>
+        </div>
+        <dl class="record-details">
+          <div>
+            <dt>办理日期</dt>
+            <dd data-field="issue"></dd>
+          </div>
+          <div>
+            <dt>生效日期</dt>
+            <dd data-field="effective"></dd>
+          </div>
+          <div>
+            <dt>到期日期</dt>
+            <dd data-field="expire"></dd>
+          </div>
+          <div>
+            <dt>渠道</dt>
+            <dd data-field="channel"></dd>
+          </div>
+          <div>
+            <dt>提醒</dt>
+            <dd data-field="reminder"></dd>
+          </div>
+          <div>
+            <dt>次数</dt>
+            <dd data-field="counts"></dd>
+          </div>
+        </dl>
+        <p class="notes"></p>
+        <div class="card-actions">
+          <button class="primary-button renewed-button" type="button">已办理</button>
+          <button class="ghost-button edit-button" type="button">编辑</button>
+          <button class="danger-button delete-button" type="button">删除</button>
+        </div>
+      </article>
+    </template>
+
+    <dialog class="renew-dialog" id="renewDialog">
+      <form method="dialog" id="renewForm">
+        <div class="dialog-heading">
+          <div>
+            <p class="dialog-eyebrow">更新进京证</p>
+            <h2 id="renewTitle">确认已办理</h2>
+          </div>
+          <button class="dialog-close" type="button" id="renewCloseButton" aria-label="关闭">×</button>
+        </div>
+        <div class="previous-period" aria-label="上一轮进京证">
+          <span>上一轮</span>
+          <strong id="previousPeriod"></strong>
+        </div>
+        <div class="two-col">
+          <label>
+            本次办理日期
+            <input id="renewIssueDate" required type="date" />
+          </label>
+          <label>
+            新一轮生效日期
+            <input id="renewEffectiveDate" required type="date" />
+          </label>
+        </div>
+        <label>
+          新一轮到期日期（自动计算）
+          <input id="renewExpireDate" readonly type="date" />
+        </label>
+        <p class="dialog-error" id="renewError" role="alert"></p>
+        <div class="dialog-actions">
+          <button class="ghost-button" id="renewCancelButton" type="button">取消</button>
+          <button class="primary-button" type="submit">确认更新</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -4,8 +4,6 @@
 
 ## 在线使用
 
-发布完成后访问：
-
 https://pualtorreszhang.github.io/beijing-entry-pass-helper/
 
 车辆信息只保存在当前浏览器的本地存储中，不会提交到公开仓库。更换设备或清除浏览器数据后，需要重新登记。

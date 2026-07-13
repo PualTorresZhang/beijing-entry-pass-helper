@@ -1,0 +1,11 @@
+{
+  "name": "进京证助手",
+  "short_name": "进京证助手",
+  "description": "外地车辆进京证到期管理与续办记录",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7f6",
+  "theme_color": "#23615a",
+  "lang": "zh-CN"
+}
