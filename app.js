@@ -32,6 +32,9 @@ const reminderDescription = document.querySelector("#reminderDescription");
 const reminderSchedule = document.querySelector("#reminderSchedule");
 const calendarButton = document.querySelector("#calendarButton");
 const notificationButton = document.querySelector("#notificationButton");
+const importButton = document.querySelector("#importButton");
+const backupButton = document.querySelector("#backupButton");
+const importFile = document.querySelector("#importFile");
 const accountActions = document.querySelector("#accountActions");
 const authGate = document.querySelector("#authGate");
 const toast = document.querySelector("#toast");
@@ -199,6 +202,68 @@ function showDueNotification() {
       body: `${plates} 的进京证已到期，请及时办理。`,
       tag: `entry-pass-${toDateInputValue(todayStart())}`,
     });
+  }
+}
+
+function downloadFile(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportBackup() {
+  if (!records.length) {
+    showToast("还没有可备份的车辆记录");
+    return;
+  }
+  downloadFile(
+    `进京证助手备份-${toDateInputValue(todayStart())}.json`,
+    JSON.stringify(records, null, 2),
+    "application/json;charset=utf-8",
+  );
+}
+
+async function importBackup(event) {
+  const [file] = event.target.files;
+  event.target.value = "";
+  if (!file) return;
+
+  try {
+    const parsed = JSON.parse(await file.text());
+    if (!Array.isArray(parsed) || !parsed.length) throw new Error("empty");
+    const imported = parsed.map((item) => ({
+      ...item,
+      id: item.id || createId(),
+      plate: normalizePlate(String(item.plate || "")),
+      usedCount: Number(item.usedCount || 0),
+      remainingCount: Number(item.remainingCount || 0),
+      reminderDays: "0",
+      updatedAt: item.updatedAt || new Date().toISOString(),
+    }));
+    const invalid = imported.find((item) => {
+      const effective = parseDate(item.effectiveDate);
+      return (
+        !item.plate ||
+        item.plate.length < 7 ||
+        !parseDate(item.issueDate) ||
+        !effective ||
+        item.expireDate !== toDateInputValue(addDays(effective, permitValidityDays - 1))
+      );
+    });
+    if (invalid) throw new Error("invalid");
+
+    await saveRecords(imported);
+    records = imported;
+    resetForm();
+    render();
+    showDueNotification();
+    showToast(`已导入 ${imported.length} 辆车`);
+  } catch {
+    alert("导入失败，请选择由进京证助手生成的 JSON 备份文件。");
   }
 }
 
@@ -596,6 +661,9 @@ function exportCalendar(event) {
 
 calendarButton.addEventListener("click", exportCalendar);
 notificationButton.addEventListener("click", requestNotifications);
+importButton.addEventListener("click", () => importFile.click());
+backupButton.addEventListener("click", exportBackup);
+importFile.addEventListener("change", importBackup);
 
 async function init() {
   applySession();
