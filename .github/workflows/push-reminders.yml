@@ -1,0 +1,21 @@
+name: 进京证到期提醒
+
+on:
+  schedule:
+    - cron: "5 1 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 检查并发送到期提醒
+        run: |
+          curl --fail --silent --show-error \
+            --retry 3 \
+            --max-time 30 \
+            --request POST \
+            "https://beijing-entry-pass-helper.zhangyu951223.chatgpt.site/api/push/run"
